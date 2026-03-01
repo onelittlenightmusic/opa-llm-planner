@@ -1,0 +1,9 @@
+{
+  "id": "goal-001",
+  "trip": {
+    "destination": "Tokyo",
+    "require_hotel": true,
+    "require_dinner": true,
+    "require_transport": false
+  }
+}
