@@ -2,7 +2,7 @@
 
 A Go CLI tool that combines [OPA (Open Policy Agent)](https://www.openpolicyagent.org/) Rego policies with LLM to automatically generate execution action plans from goal and current state JSON files.
 
-[日本語](#日本語)
+[日本語で読む](README.ja.md)
 
 ---
 
@@ -213,83 +213,3 @@ opa-llm-planner/
 └── examples/         # Example input files
 ```
 
----
-
-## 日本語
-
-`opa-llm-planner` は OPA (Open Policy Agent) の Rego ルールと LLM を組み合わせ、goal/current JSON から実行アクション列を生成する Go CLI ツールです。
-
-### 概要
-
-goal（目標状態）と current（現在状態）の差分を Rego ポリシーで評価し、不足しているアクションを特定します。LLM（Anthropic Claude または OpenAI GPT-4o）を使って各アクションの説明やパラメータを自動補完することもできます。
-
-### コマンド
-
-| コマンド | 説明 |
-|---------|------|
-| `plan` | goal/current と Rego ポリシーからアクションプランを生成 |
-| `consider` | 不足アクションに対応する Rego ルールを LLM で生成 |
-
-### インストール
-
-```bash
-git clone https://github.com/onelittlenightmusic/opa-llm-planner.git
-cd opa-llm-planner
-go build -o opa-llm-planner .
-```
-
-### 基本的な使い方
-
-```bash
-# plan コマンド（OPAのみ）
-./opa-llm-planner plan \
-  --goal examples/goal.json \
-  --current examples/current.json \
-  --policy ./policies
-
-# plan コマンド（LLM でアクションを補完）
-ANTHROPIC_API_KEY=xxx ./opa-llm-planner plan \
-  --goal examples/goal.json \
-  --current examples/current.json \
-  --policy ./policies \
-  --llm --llm-provider anthropic
-
-# consider コマンド（不足ルールを生成・ドライラン）
-ANTHROPIC_API_KEY=xxx ./opa-llm-planner consider \
-  --goal examples/goal.json \
-  --current examples/current.json \
-  --policy ./policies \
-  --dry-run \
-  --llm-provider anthropic
-```
-
-### Rego ポリシーの書き方
-
-`package planner` の `missing` セットにアクション名を追加するルールを記述します。
-
-```rego
-package planner
-
-missing[action] {
-  input.goal.trip.require_hotel
-  not input.current.hotel_reserved
-  action := "reserve_hotel"
-}
-```
-
-Rego 内で参照できる `input` は以下の構造です：
-
-```json
-{
-  "goal":    { /* goal.json の内容 */ },
-  "current": { /* current.json の内容 */ }
-}
-```
-
-### 環境変数
-
-| 変数 | 説明 |
-|------|------|
-| `ANTHROPIC_API_KEY` | Anthropic API キー |
-| `OPENAI_API_KEY` | OpenAI API キー |
-| `LLM_PROVIDER` | デフォルトの LLM プロバイダ（`anthropic` または `openai`） |
