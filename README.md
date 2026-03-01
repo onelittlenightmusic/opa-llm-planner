@@ -24,10 +24,26 @@ goal.json + current.json + policies/*.rego  →  plan.json
 
 ## Installation
 
+### Build and install to `/usr/local/bin`
+
 ```bash
 git clone https://github.com/onelittlenightmusic/opa-llm-planner.git
 cd opa-llm-planner
-go build -o opa-llm-planner .
+make install   # may require sudo
+```
+
+This builds the binary and copies it to `/usr/local/bin/opa-llm-planner`.
+
+### Build only (into `bin/`)
+
+```bash
+make build
+```
+
+### Uninstall
+
+```bash
+make uninstall   # may require sudo
 ```
 
 ## Usage

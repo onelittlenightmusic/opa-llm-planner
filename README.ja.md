@@ -24,10 +24,26 @@ goal.json + current.json + policies/*.rego  →  plan.json
 
 ## インストール
 
+### ビルドして `/usr/local/bin` にインストール
+
 ```bash
 git clone https://github.com/onelittlenightmusic/opa-llm-planner.git
 cd opa-llm-planner
-go build -o opa-llm-planner .
+make install   # sudo が必要な場合があります
+```
+
+バイナリをビルドし、`/usr/local/bin/opa-llm-planner` にコピーします。
+
+### ビルドのみ（`bin/` に出力）
+
+```bash
+make build
+```
+
+### アンインストール
+
+```bash
+make uninstall   # sudo が必要な場合があります
 ```
 
 ## 使い方
