@@ -20,6 +20,7 @@ goal.json + current.json + policies/*.rego  →  plan.json
 |---------|-------------|
 | `plan` | Generate an action plan from goal/current state using OPA policies |
 | `consider` | Generate new Rego rules for missing actions using LLM |
+| `explain` | Show why actions are missing using OPA trace |
 
 ## Installation
 
@@ -134,6 +135,53 @@ ANTHROPIC_API_KEY=xxx ./opa-llm-planner consider \
 | `--append` | false | Append to output file instead of overwriting |
 | `--dry-run` | false | Print rules without writing to file |
 | `--llm-provider` | `$LLM_PROVIDER` | `anthropic` or `openai` |
+
+### `explain` — Show why actions are missing
+
+Run the OPA policy evaluation with tracing enabled to see exactly which rules fired and why each action is considered missing.
+
+```bash
+./opa-llm-planner explain \
+  --goal examples/goal.json \
+  --current examples/current.json \
+  --policy ./policies
+
+# Include source file and line number in trace
+./opa-llm-planner explain \
+  --goal examples/goal.json \
+  --current examples/current.json \
+  --policy ./policies \
+  --location
+```
+
+**Flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--goal` | `examples/goal.json` | Path to goal JSON file |
+| `--current` | `examples/current.json` | Path to current state JSON file |
+| `--policy` | `policies` | Directory containing Rego policy files |
+| `--location` | false | Include source file and line number in trace output |
+
+**Example output:**
+
+```
+=== OPA Trace: why actions are missing ===
+
+Enter data.planner.missing = _
+| Eval data.planner.missing = _
+| Index data.planner.missing (matched 2 rules)
+| Enter data.planner.missing
+| | Eval input.goal.trip.require_hotel
+| | Eval not input.current.hotel_reserved
+| | | Fail input.current.hotel_reserved    ← hotel_reserved is false → missing!
+| | Eval action = "reserve_hotel"
+| | Exit data.planner.missing
+...
+
+=== Result ===
+Missing actions: [reserve_hotel, reserve_dinner]
+```
 
 ## Writing Rego Policies
 

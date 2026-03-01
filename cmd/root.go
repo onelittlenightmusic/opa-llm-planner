@@ -19,4 +19,5 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(planCmd)
 	rootCmd.AddCommand(considerCmd)
+	rootCmd.AddCommand(explainCmd)
 }

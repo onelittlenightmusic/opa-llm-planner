@@ -3,10 +3,12 @@ package opa
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/topdown"
 )
 
 // Evaluator wraps the OPA SDK for Rego policy evaluation.
@@ -26,7 +28,37 @@ func (e *Evaluator) EvaluateMissing(ctx context.Context, goal, current map[strin
 	if err != nil {
 		return nil, fmt.Errorf("loading policies: %w", err)
 	}
+	rs, err := e.eval(ctx, modules, goal, current, nil)
+	if err != nil {
+		return nil, err
+	}
+	return extractActions(rs)
+}
 
+// ExplainMissing evaluates data.planner.missing with tracing enabled and writes
+// the pretty-printed OPA trace to w.
+func (e *Evaluator) ExplainMissing(ctx context.Context, goal, current map[string]interface{}, w io.Writer, withLocation bool) ([]string, error) {
+	modules, err := e.loadModules()
+	if err != nil {
+		return nil, fmt.Errorf("loading policies: %w", err)
+	}
+
+	buf := topdown.NewBufferTracer()
+	rs, err := e.eval(ctx, modules, goal, current, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if withLocation {
+		topdown.PrettyTraceWithLocation(w, *buf)
+	} else {
+		topdown.PrettyTrace(w, *buf)
+	}
+
+	return extractActions(rs)
+}
+
+func (e *Evaluator) eval(ctx context.Context, modules map[string]string, goal, current map[string]interface{}, tracer topdown.QueryTracer) (rego.ResultSet, error) {
 	options := []func(*rego.Rego){
 		rego.Query("data.planner.missing"),
 		rego.Input(map[string]interface{}{
@@ -37,13 +69,19 @@ func (e *Evaluator) EvaluateMissing(ctx context.Context, goal, current map[strin
 	for name, src := range modules {
 		options = append(options, rego.Module(name, src))
 	}
+	if tracer != nil {
+		options = append(options, rego.QueryTracer(tracer))
+	}
 
 	r := rego.New(options...)
 	rs, err := r.Eval(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("evaluating policy: %w", err)
 	}
+	return rs, nil
+}
 
+func extractActions(rs rego.ResultSet) ([]string, error) {
 	if len(rs) == 0 || len(rs[0].Expressions) == 0 {
 		return nil, nil
 	}

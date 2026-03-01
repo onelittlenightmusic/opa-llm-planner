@@ -20,6 +20,7 @@ goal.json + current.json + policies/*.rego  →  plan.json
 |---------|------|
 | `plan` | goal/current と Rego ポリシーからアクションプランを生成 |
 | `consider` | 不足アクションに対応する Rego ルールを LLM で生成 |
+| `explain` | OPA トレースでなぜアクションが missing なのかを表示 |
 
 ## インストール
 
@@ -134,6 +135,53 @@ ANTHROPIC_API_KEY=xxx ./opa-llm-planner consider \
 | `--append` | false | 既存ファイルに追記する |
 | `--dry-run` | false | ファイルに書かず画面に表示のみ |
 | `--llm-provider` | `$LLM_PROVIDER` | `anthropic` または `openai` |
+
+### `explain` — なぜ missing なのかを OPA トレースで表示
+
+OPA のトレース機能を使って、どのルールが評価されたか・なぜアクションが missing になったかを詳細に表示します。
+
+```bash
+./opa-llm-planner explain \
+  --goal examples/goal.json \
+  --current examples/current.json \
+  --policy ./policies
+
+# ソースファイルと行番号も表示する
+./opa-llm-planner explain \
+  --goal examples/goal.json \
+  --current examples/current.json \
+  --policy ./policies \
+  --location
+```
+
+**フラグ一覧：**
+
+| フラグ | デフォルト | 説明 |
+|-------|-----------|------|
+| `--goal` | `examples/goal.json` | goal JSON ファイルのパス |
+| `--current` | `examples/current.json` | current JSON ファイルのパス |
+| `--policy` | `policies` | Rego ポリシーファイルのディレクトリ |
+| `--location` | false | ソースファイル・行番号をトレースに含める |
+
+**出力例：**
+
+```
+=== OPA Trace: why actions are missing ===
+
+Enter data.planner.missing = _
+| Eval data.planner.missing = _
+| Index data.planner.missing (matched 2 rules)
+| Enter data.planner.missing
+| | Eval input.goal.trip.require_hotel
+| | Eval not input.current.hotel_reserved
+| | | Fail input.current.hotel_reserved    ← hotel_reserved が false → missing!
+| | Eval action = "reserve_hotel"
+| | Exit data.planner.missing
+...
+
+=== Result ===
+Missing actions: [reserve_hotel, reserve_dinner]
+```
 
 ## Rego ポリシーの書き方
 
